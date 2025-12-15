@@ -1,2 +1,2 @@
 # fal25-cnpm-project-base
-CNPM Triển khai dự án SaaS Smart Restaurant Management Platform with QR Code Ordering
+BE cnpm fal25 Triển khai dự án theo phương pháp project base learning
