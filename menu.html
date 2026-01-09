@@ -232,6 +232,9 @@
         .toast.show {
             opacity: 1;
         }
+        button{
+            border: none;
+        }
     </style>
 </head>
 
@@ -242,18 +245,15 @@
             <span class="navbar-brand">🍽️ Nhà Hàng</span>
 
             <div class="table-selector">
-                <select class="form-select" id="table-select">
-                    <option value="1">Bàn 1</option>
-                    <option value="2">Bàn 2</option>
-                    <option value="3">Bàn 3</option>
-                    <option value="4">Bàn 4</option>
-                    <option value="5">Bàn 5</option>
-                </select>
+                <div class="table-label">
+                    Bàn số: <strong id="table-number"></strong>
+                </div>
+
             </div>
 
-            <a href="./cart.html" class="cart-btn">
+            <a class="cart-btn" id="cart-link">
                 <i class="fas fa-shopping-cart"></i>
-                <span>Giỏ hàng</span>
+                <span>Thực đơn</span>
                 <span class="cart-badge" id="cart-count">0</span>
             </a>
         </div>

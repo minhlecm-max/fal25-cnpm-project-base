@@ -1,101 +1,128 @@
+function getTableFromURL() {
+    return new URLSearchParams(window.location.search).get('table');
+}
+
 function getSelectedTable() {
-    return localStorage.getItem('selectedTable') || '1';
+    return localStorage.getItem('selectedTable');
 }
 
 function getAllCarts() {
-    const carts = localStorage.getItem('cartsByTable');
-    return carts ? JSON.parse(carts) : {};
+    return JSON.parse(localStorage.getItem('cartsByTable') || '{}');
 }
-
 
 function saveAllCarts(carts) {
     localStorage.setItem('cartsByTable', JSON.stringify(carts));
 }
 
 function getCart() {
-    const tableId = getSelectedTable();
-    const allCarts = getAllCarts();
-    return allCarts[tableId] || [];
+    const table = getSelectedTable();
+    const carts = getAllCarts();
+    return carts[table] || [];
 }
 
 function saveCart(cart) {
-    const tableId = getSelectedTable();
-    const allCarts = getAllCarts();
-    allCarts[tableId] = cart;
-    saveAllCarts(allCarts);
+    const table = getSelectedTable();
+    const carts = getAllCarts();
+    carts[table] = cart;
+    saveAllCarts(carts);
 }
 
 function formatPrice(price) {
     return price.toLocaleString('vi-VN') + 'đ';
 }
 
+/* ================== MAIN ================== */
+document.addEventListener('DOMContentLoaded', () => {
+    let table = getTableFromURL() || getSelectedTable();
+
+    // ❌ Không có bàn
+    if (!table) {
+        alert('Vui lòng quét QR trên bàn để gọi món');
+        window.location.replace('./menu.html');
+        return;
+    }
+
+    // ✅ Lưu bàn
+    localStorage.setItem('selectedTable', table);
+
+    // ✅ URL thiếu table → bổ sung
+    if (!getTableFromURL()) {
+        window.location.replace(`./Cart.html?table=${table}`);
+        return;
+    }
+
+    // ===== UI =====
+    document.getElementById('current-table').textContent = `Bàn ${table}`;
+    document.getElementById('menu-link').href = `./menu.html?table=${table}`;
+
+    renderCart();
+    updateSummary();
+
+    document.getElementById('discount-input')
+        ?.addEventListener('input', updateSummary);
+});
+
+/* ================== CART ================== */
 function renderCart() {
     const container = document.getElementById('cart-items-container');
     const cart = getCart();
 
-    if (cart.length === 0) {
+    if (!cart.length) {
         container.innerHTML = `
             <div class="empty-cart">
                 <i class="fas fa-shopping-basket"></i>
-                <h4>Giỏ hàng trống</h4>
-                <p>Hãy thêm món từ menu!</p>
-                <a href="./menu.html" class="btn btn-primary mt-2">
-                     Xem Menu
+                <h4>Thực đơn trống</h4>
+                <a href="./menu.html?table=${getSelectedTable()}" class="btn btn-primary mt-3">
+                    Xem Menu
                 </a>
             </div>
         `;
         return;
     }
 
-    let html = '';
-    cart.forEach(item => {
-        html += `
-            <div class="cart-item d-flex align-items-center" data-id="${item.id}">
-                <img src="${item.image}" alt="${item.name}" class="item-image me-3">
-                <div class="flex-grow-1">
-                    <h5 class="mb-1">${item.name}</h5>
-                    <span class="text-danger fw-bold">${formatPrice(item.price)}</span>
-                </div>
-                <div class="d-flex align-items-center gap-2">
-                    <button class="quantity-btn" onclick="updateQuantity(${item.id}, -1)">-</button>
-                    <span class="fw-bold">${item.quantity}</span>
-                    <button class="quantity-btn" onclick="updateQuantity(${item.id}, 1)">+</button>
-                </div>
-                <i class="fas fa-trash remove-btn ms-3 fs-5" onclick="removeItem(${item.id})"></i>
+    container.innerHTML = cart.map(item => `
+        <div class="cart-item d-flex align-items-center">
+            <img src="${item.image}" class="item-image me-3">
+            <div class="flex-grow-1">
+                <h5>${item.name}</h5>
+                <span class="text-danger fw-bold">${formatPrice(item.price)}</span>
             </div>
-        `;
-    });
-
-    container.innerHTML = html;
+            <div class="d-flex gap-2">
+                <button onclick="updateQuantity(${item.id}, -1)">-</button>
+                <b>${item.quantity}</b>
+                <button onclick="updateQuantity(${item.id}, 1)">+</button>
+            </div>
+            <i class="fas fa-trash ms-3" onclick="removeItem(${item.id})"></i>
+        </div>
+    `).join('');
 }
 
-function updateQuantity(itemId, change) {
+function updateQuantity(id, change) {
     let cart = getCart();
-    const item = cart.find(c => c.id === itemId);
+    const item = cart.find(i => i.id === id);
+    if (!item) return;
 
-    if (item) {
-        item.quantity += change;
-        if (item.quantity <= 0) {
-            cart = cart.filter(c => c.id !== itemId);
-        }
-        saveCart(cart);
-        renderCart();
-        updateSummary();
+    item.quantity += change;
+    if (item.quantity <= 0) {
+        cart = cart.filter(i => i.id !== id);
     }
+
+    saveCart(cart);
+    renderCart();
+    updateSummary();
 }
 
-function removeItem(itemId) {
-    let cart = getCart().filter(c => c.id !== itemId);
-    saveCart(cart);
+function removeItem(id) {
+    saveCart(getCart().filter(i => i.id !== id));
     renderCart();
     updateSummary();
 }
 
 function updateSummary() {
     const cart = getCart();
-    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const discountPercent = parseFloat(document.getElementById('discount-input').value) || 0;
-    const discountAmount = subtotal * (discountPercent / 100);
+    const subtotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
+    const discount = parseFloat(document.getElementById('discount-input')?.value) || 0;
+    const discountAmount = subtotal * discount / 100;
     const total = subtotal - discountAmount;
 
     document.getElementById('subtotal').textContent = formatPrice(subtotal);
@@ -104,26 +131,10 @@ function updateSummary() {
 }
 
 function placeOrder() {
-    const cart = getCart();
-    if (cart.length === 0) {
-        alert('Giỏ hàng trống! Vui lòng thêm món.');
-        return;
-    }
+    if (!getCart().length) return alert('Giỏ hàng trống');
 
-    const table = getSelectedTable();
-    alert(`Đặt món thành công cho Bàn ${table}!\nCảm ơn bạn đã đặt hàng.`);
-
+    alert(`Đặt món thành công cho Bàn ${getSelectedTable()}`);
     saveCart([]);
     renderCart();
     updateSummary();
 }
-
-document.addEventListener('DOMContentLoaded', () => {
-    const table = getSelectedTable();
-    document.getElementById('current-table').textContent = `Bàn ${table}`;
-
-    renderCart();
-    updateSummary();
-
-    document.getElementById('discount-input').addEventListener('input', updateSummary);
-});

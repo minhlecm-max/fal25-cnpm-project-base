@@ -1,87 +1,17 @@
 const MAX_ITEMS_PER_CATEGORY = 8;
 
-function renderMenu() {
-    const container = document.getElementById('menu-items-container');
-
-    const categories = {};
-    menu.forEach(item => {
-        if (!categories[item.category]) {
-            categories[item.category] = [];
-        }
-        categories[item.category].push(item);
-    });
-
-    let html = '';
-
-    for (const [categoryName, items] of Object.entries(categories)) {
-        const displayItems = items.slice(0, MAX_ITEMS_PER_CATEGORY);
-        const hasMore = items.length > MAX_ITEMS_PER_CATEGORY;
-
-        html += `
-            <div class="category-section mb-4">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h4 class="category-title mb-0">${categoryName}</h4>
-                    ${hasMore ? `
-                        <a href="./category.html?category=${encodeURIComponent(categoryName)}" class="btn-see-more">
-                            Xem thêm <i class="fas fa-arrow-right"></i>
-                        </a>
-                    ` : ''}
-                </div>
-                <div class="row mt-3">
-                    ${displayItems.map(item => `
-                        <div class="col-md-6 col-lg-3 mb-3">
-                            <div class="menu-card" data-id="${item.id}">
-                                <img src="${item.image}" alt="${item.name}" class="menu-image" onclick="openImageModal('${item.image}', '${item.name}')">
-                                <div class="menu-info">
-                                    <h5 class="menu-name">${item.name}</h5>
-                                    <p class="menu-description">${item.description || ''}</p>
-                                    <div class="text-danger fw-bold mb-2" style="font-size: 1.1rem;">${formatPrice(item.price)}</div>
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <div class="quantity-control d-flex align-items-center border rounded px-2" style="background: white;">
-                                            <button class="btn btn-sm btn-link text-decoration-none p-0 text-dark" onclick="adjustQty(${item.id}, -1)">-</button>
-                                            <span class="mx-2 fw-bold" id="qty-${item.id}">1</span>
-                                            <button class="btn btn-sm btn-link text-decoration-none p-0 text-dark" onclick="adjustQty(${item.id}, 1)">+</button>
-                                        </div>
-                                        <button class="btn btn-add" onclick="addToCart(${item.id})">
-                                            <i class="fas fa-plus"></i> Thêm
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-        `;
-    }
-
-    container.innerHTML = html;
-}
-
-function formatPrice(price) {
-    return price.toLocaleString('vi-VN') + 'đ';
-}
-
-function adjustQty(itemId, change) {
-    const qtyElement = document.getElementById(`qty-${itemId}`);
-    let currentQty = parseInt(qtyElement.textContent);
-    currentQty += change;
-    if (currentQty < 1) currentQty = 1;
-    qtyElement.textContent = currentQty;
+/* ================= TABLE ================= */
+function getTableFromURL() {
+    return new URLSearchParams(window.location.search).get('table');
 }
 
 function getSelectedTable() {
-    return localStorage.getItem('selectedTable') || '1';
+    return localStorage.getItem('selectedTable');
 }
 
-function saveSelectedTable(tableId) {
-    localStorage.setItem('selectedTable', tableId);
-    updateCartBadge();
-}
-
+/* ================= CART STORAGE ================= */
 function getAllCarts() {
-    const carts = localStorage.getItem('cartsByTable');
-    return carts ? JSON.parse(carts) : {};
+    return JSON.parse(localStorage.getItem('cartsByTable') || '{}');
 }
 
 function saveAllCarts(carts) {
@@ -89,77 +19,138 @@ function saveAllCarts(carts) {
 }
 
 function getCart() {
-    const tableId = getSelectedTable();
-    const allCarts = getAllCarts();
-    return allCarts[tableId] || [];
+    const table = getSelectedTable();
+    const carts = getAllCarts();
+    return carts[table] || [];
 }
 
 function saveCart(cart) {
-    const tableId = getSelectedTable();
-    const allCarts = getAllCarts();
-    allCarts[tableId] = cart;
-    saveAllCarts(allCarts);
+    const table = getSelectedTable();
+    const carts = getAllCarts();
+    carts[table] = cart;
+    saveAllCarts(carts);
 }
 
-function addToCart(itemId) {
-    const item = menu.find(m => m.id === itemId);
-    if (!item) return;
+/* ================= PAGE PROTECT ================= */
+document.addEventListener('DOMContentLoaded', () => {
+    let table = getTableFromURL() || getSelectedTable();
 
-    const qtyElement = document.getElementById(`qty-${itemId}`);
-    const quantity = parseInt(qtyElement.textContent);
-
-    let cart = getCart();
-    const existingItem = cart.find(c => c.id === itemId);
-
-    if (existingItem) {
-        existingItem.quantity += quantity;
-    } else {
-        cart.push({
-            id: item.id,
-            name: item.name,
-            price: item.price,
-            image: item.image,
-            quantity: quantity
-        });
+    if (!table) {
+        alert('Vui lòng quét QR trên bàn để gọi món');
+        window.location.replace('./index.html');
+        return;
     }
 
-    saveCart(cart);
-    updateCartBadge();
+    // lưu bàn chuẩn
+    localStorage.setItem('selectedTable', table);
 
-    qtyElement.textContent = 1;
+    // URL thiếu table → bổ sung
+    if (!getTableFromURL()) {
+        window.location.replace(`./menu.html?table=${table}`);
+        return;
+    }
 
-    const tableId = getSelectedTable();
-    showToast(`Đã thêm ${quantity} "${item.name}" vào giỏ hàng Bàn ${tableId}!`);
-}
+    // UI
+    document.getElementById('table-number').textContent = table;
+    document.getElementById('cart-link').href = `./Cart.html?table=${table}`;
 
-function updateCartBadge() {
-    const cart = getCart();
-    const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-    document.getElementById('cart-count').textContent = totalItems;
-}
-
-function showToast(message) {
-    const toast = document.getElementById('toast');
-    toast.textContent = message;
-    toast.classList.add('show');
-    setTimeout(() => {
-        toast.classList.remove('show');
-    }, 2000);
-}
-
-document.addEventListener('DOMContentLoaded', () => {
     renderMenu();
     updateCartBadge();
     createImageModal();
-
-    const tableSelect = document.getElementById('table-select');
-    tableSelect.value = getSelectedTable();
-
-    tableSelect.addEventListener('change', (e) => {
-        saveSelectedTable(e.target.value);
-    });
 });
 
+/* ================= MENU ================= */
+function renderMenu() {
+    const container = document.getElementById('menu-items-container');
+    if (!container) return;
+
+    const categories = {};
+    menu.forEach(item => {
+        (categories[item.category] ||= []).push(item);
+    });
+
+    container.innerHTML = Object.entries(categories).map(([category, items]) => {
+        const display = items.slice(0, MAX_ITEMS_PER_CATEGORY);
+        const more = items.length > MAX_ITEMS_PER_CATEGORY;
+
+        return `
+        <div class="category-section mb-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <h4 class="category-title">${category}</h4>
+                ${more ? `
+                <a class="btn-see-more"
+                   href="./category.html?category=${encodeURIComponent(category)}&table=${getSelectedTable()}">
+                    Xem thêm <i class="fas fa-arrow-right"></i>
+                </a>` : ''}
+            </div>
+
+            <div class="row mt-3">
+                ${display.map(item => `
+                <div class="col-md-6 col-lg-3 mb-3">
+                    <div class="menu-card">
+                        <img src="${item.image}" class="menu-image"
+                             onclick="openImageModal('${item.image}','${item.name}')">
+                        <div class="menu-info">
+                            <h5>${item.name}</h5>
+                            <p class="menu-description">${item.description || ''}</p>
+                            <div class="menu-price">${formatPrice(item.price)}</div>
+                            <div class="d-flex justify-content-between mt-2">
+                                <div>
+                                    <button onclick="adjustQty(${item.id},-1)">-</button>
+                                    <span id="qty-${item.id}">1</span>
+                                    <button onclick="adjustQty(${item.id},1)">+</button>
+                                </div>
+                                <button class="btn-add" onclick="addToCart(${item.id})">
+                                    <i class="fas fa-plus"></i> Thêm
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>`).join('')}
+            </div>
+        </div>`;
+    }).join('');
+}
+
+/* ================= ACTIONS ================= */
+function adjustQty(id, change) {
+    const el = document.getElementById(`qty-${id}`);
+    el.textContent = Math.max(1, +el.textContent + change);
+}
+
+function addToCart(id) {
+    const item = menu.find(i => i.id === id);
+    const qty = +document.getElementById(`qty-${id}`).textContent;
+
+    let cart = getCart();
+    const exist = cart.find(i => i.id === id);
+
+    exist ? exist.quantity += qty : cart.push({ ...item, quantity: qty });
+
+    saveCart(cart);
+    updateCartBadge();
+    showToast(`Đã thêm ${qty} "${item.name}" cho Bàn ${getSelectedTable()}`);
+    document.getElementById(`qty-${id}`).textContent = 1;
+}
+
+function updateCartBadge() {
+    document.getElementById('cart-count').textContent =
+        getCart().reduce((s, i) => s + i.quantity, 0);
+}
+
+/* ================= UI ================= */
+function formatPrice(p) {
+    return p.toLocaleString('vi-VN') + 'đ';
+}
+
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+/* ================= IMAGE MODAL ================= */
 function createImageModal() {
     const modal = document.createElement('div');
     modal.id = 'image-modal';
@@ -167,30 +158,19 @@ function createImageModal() {
     modal.innerHTML = `
         <div class="image-modal-content">
             <span class="image-modal-close" onclick="closeImageModal()">&times;</span>
-            <img id="modal-image" src="" alt="">
+            <img id="modal-image">
             <p id="modal-caption"></p>
-        </div>
-    `;
+        </div>`;
     document.body.appendChild(modal);
-
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            closeImageModal();
-        }
-    });
+    modal.onclick = e => e.target === modal && closeImageModal();
 }
 
-function openImageModal(imageSrc, imageName) {
-    const modal = document.getElementById('image-modal');
-    const modalImg = document.getElementById('modal-image');
-    const caption = document.getElementById('modal-caption');
-
-    modal.style.display = 'flex';
-    modalImg.src = imageSrc;
-    caption.textContent = imageName;
+function openImageModal(src, name) {
+    document.getElementById('image-modal').style.display = 'flex';
+    document.getElementById('modal-image').src = src;
+    document.getElementById('modal-caption').textContent = name;
 }
 
 function closeImageModal() {
-    const modal = document.getElementById('image-modal');
-    modal.style.display = 'none';
+    document.getElementById('image-modal').style.display = 'none';
 }

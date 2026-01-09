@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Giỏ hàng - Nhà hàng</title>
+    <title>Thực đơn - Nhà hàng</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -134,7 +134,7 @@
                 <span id="current-table">Bàn 1</span>
             </div>
 
-            <a href="./menu.html" class="menu-btn">
+            <a id="menu-link" class="menu-btn">
                 <i class="fas fa-utensils"></i>
                 <span>Xem Menu</span>
             </a>
@@ -146,7 +146,7 @@
             <div class="col-lg-8">
                 <div class="cart-container">
                     <div class="cart-header">
-                        <h3><i class="fas fa-shopping-cart"></i> Giỏ hàng</h3>
+                        <h3><i class="fas fa-shopping-cart"></i> Thực đơn</h3>
                     </div>
                     <div id="cart-items-container"></div>
                 </div>
@@ -154,7 +154,7 @@
 
             <div class="col-lg-4 mt-4 mt-lg-0">
                 <div class="cart-summary">
-                    <h4 class="fw-bold mb-3">🧾 Tóm tắt đơn hàng</h4>
+                    <h4 class="fw-bold mb-3">🧾 Tóm tắt thực đơn</h4>
 
                     <div class="mb-3">
                         <label class="form-label fw-bold">Giảm giá (%)</label>

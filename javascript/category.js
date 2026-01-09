@@ -129,7 +129,7 @@ function addToCart(itemId) {
     qtyElement.textContent = 1;
 
     const tableId = getSelectedTable();
-    showToast(`Đã thêm ${quantity} "${item.name}" vào giỏ hàng Bàn ${tableId}!`);
+    showToast(`Đã thêm ${quantity} "${item.name}" vào thực đơn của Bàn ${tableId}!`);
 }
 
 function updateCartBadge() {
